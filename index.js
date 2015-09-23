@@ -2,7 +2,7 @@
 
 var path = require('path');
 
-function OmitTildeWebpackPlugin(files, options) {
+function OmitTildeWebpackPlugin(options) {
   this.options = (typeof options === 'object') ? options : {};
 }
 module.exports = OmitTildeWebpackPlugin;

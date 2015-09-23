@@ -1,0 +1,27 @@
+{
+  "name": "omit-tilde-webpack-plugin",
+  "version": "0.0.1",
+  "description": "Webpack plugin that allows module imports to omit a tilde",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bholloway/omit-tilde-webpack-plugin.git"
+  },
+  "keywords": [
+    "webpack",
+    "plugin",
+    "tilde",
+    "module",
+    "sass"
+  ],
+  "author": "bholloway",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bholloway/omit-tilde-webpack-plugin/issues"
+  },
+  "homepage": "https://github.com/bholloway/omit-tilde-webpack-plugin",
+  "dependencies": {},
+  "peerDependencies": {
+    "webpack": "^1.12.0"
+  }
+}

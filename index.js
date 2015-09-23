@@ -2,19 +2,28 @@
 
 var path = require('path');
 
-function OmitTildeWebpackPlugin(files) {
-  this.files = files;
+function OmitTildeWebpackPlugin(files, options) {
+  this.options = (typeof options === 'object') ? options : {};
 }
 module.exports = OmitTildeWebpackPlugin;
 
 OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
-  var warn     = noop,
-      depNames = [].concat(this.files)
-        .reduce(eachJSON, []);
+  var options = this.options,
+      warn    = noop;
 
+  // work out the modules that we need to respond to
+  var excludeNames = [].concat(options.exclude)
+        .map(String),
+      includeNames = [].concat(options.include)
+        .map(String)
+        .reduce(eachInclude, []),
+      moduleNames  = includeNames
+        .filter(testNotExcluded.bind(null, excludeNames));
+
+  // hook the compiler so we can push warnings in the warn() method
   compiler.plugin('compilation', onCompilation);
 
-  if (depNames.length) {
+  if (moduleNames.length) {
     compiler.resolvers.normal.plugin('directory', directoryResolver);
   } else {
     warn('No dependencies found, plugin will not run');
@@ -26,35 +35,43 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
 
   function onCompilation(compilation) {
     var warnings = [];
-    warn = addWarning;
 
-    function addWarning() {
+    warn = function warn() {
       var text = ['omit-tilde-webpack-plugin'].concat(Array.prototype.slice.call(arguments))
         .join(' ');
       if (warnings.indexOf(text) < 0) {
         compilation.warnings.push(text);
         warnings.push(text);
       }
-    }
+    };
   }
 
-  function eachJSON(reduced, filename) {
-    var contents;
-    try {
-      contents = require(path.resolve(filename));
+  function eachInclude(reduced, include) {
+    if (/\.json$/i.test(include)) {
+      var contents;
+      try {
+        contents = require(path.resolve(include));
+      }
+      catch (exception) {
+        warn('file', include, 'was not found in the working directory');
+      }
+      return reduced
+        .concat(contents && Object.keys(contents.dependencies))
+        .concat(contents && Object.keys(contents.devDependencies))
+        .filter(Boolean)
+        .reduce(flatten, []);
     }
-    catch (exception) {
-      warn('file', filename, 'was not found in the working directory');
+    else {
+      return reduced.concat(include);
     }
-    return reduced
-      .concat(contents && Object.keys(contents.dependencies))
-      .concat(contents && Object.keys(contents.devDependencies))
-      .filter(Boolean)
-      .reduce(flatten, []);
 
     function flatten(reduced, value) {
       return reduced.concat(value);
     }
+  }
+
+  function testNotExcluded(excluded, candidate) {
+    return (excluded.indexOf(candidate) < 0);
   }
 
   function directoryResolver(candidate, done) {
@@ -63,7 +80,7 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
         isCSS        = /\.s?css$/.test(path.extname(requestText)),
         split        = isCSS && requestText.split(/[\\\/]+/),
         isRelative   = split && (split[0] === '.'),
-        isDependency = split && (depNames.indexOf(split[1]) >= 0);
+        isDependency = split && (moduleNames.indexOf(split[1]) >= 0);
     if (isRelative && isDependency) {
       var amended = {
         path   : candidate.path,

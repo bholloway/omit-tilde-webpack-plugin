@@ -56,8 +56,8 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
         warn('file', include, 'was not found in the working directory');
       }
       return reduced
-        .concat(contents && Object.keys(contents.dependencies))
-        .concat(contents && Object.keys(contents.devDependencies))
+        .concat(contents && contents.dependencies && Object.keys(contents.dependencies))
+        .concat(contents && contents.devDependencies && Object.keys(contents.devDependencies))
         .filter(Boolean)
         .reduce(flatten, []);
     }

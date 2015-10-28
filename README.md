@@ -30,15 +30,16 @@ This plugin allows your legacy code to work out of the box, so long as `bootstra
 
 ## Usage
 
+In the typical use-case you will want to be able to omit the tilde for all dependencies in your `node_modules`.
+
 ```javascript
 var OmitTildeWebpackPlugin = require('omit-tilde-webpack-plugin');
 {
   plugins : [
     new OmitTildeWebpackPlugin({
-      test     : /\.someExt$/ ,
-      include  : ['package.json', 'bower.json', 'some-package-name'],
-      exclude  : 'some-other-package-name',
+      include  : 'package.json',
       deprecate: true
+    })
   ]
 }
 ```
@@ -47,9 +48,18 @@ Do **not** wrap with `webpack.ResolverPlugin()`, use as a separate plugin.
 
 ### Options
 
-* `test` is an optional regular expression for which to restrict operation. By default the plugin will operate on all dependencies encountered.
+```javascript
+new OmitTildeWebpackPlugin({
+  test     : /\.someExt$/ ,
+  include  : ['package.json', 'bower.json', 'some-module-name'],
+  exclude  : 'some-other-package-name',
+  deprecate: true
+}
+```
 
-* `include` is one or more modules names or project relative JSON file paths (e.g. `package.json`). A `.json` suffix indicates a file that specifies `dependencies` and/or `devDependencies`. Any other string indicates a module name.
+* `test` is an optional regular expression for which to restrict operation only to dependencies that match the expression. By default the plugin will operate on all types without restriction.
+
+* `include` is one or more modules names or project relative JSON file paths (e.g. `package.json`). A `.json` suffix indicates a file that specifies `dependencies` and/or `devDependencies` and/or `bundledDependencies`. Any other string indicates a module name.
 
 * `exclude` is any number of module names to remove from the include list.
 

@@ -2,11 +2,11 @@
 
 [![NPM](https://nodei.co/npm/omit-tilde-webpack-plugin.png)](http://github.com/bholloway/omit-tilde-webpack-plugin)
 
-Webpack plugin that allows module imports to omit a tilde
+Webpack plugin that allows module imports to omit a tilde.
 
 This plugin is aware of your modules an will infer imports without a tilde.
 
-## Ratonale
+## Rationale
 
 In some cases (e.g. SASS `@import` statements) Webpack requires you to indicate modules by using a tilde (`~`) prefix. Tilde is necessary to resolve an ambiguous import syntax in the given language.
 
@@ -35,6 +35,7 @@ var OmitTildeWebpackPlugin = require('omit-tilde-webpack-plugin');
 {
   plugins : [
     new OmitTildeWebpackPlugin({
+      test     : /\.someExt$/ ,
       include  : ['package.json', 'bower.json', 'some-package-name'],
       exclude  : 'some-other-package-name',
       deprecate: true
@@ -46,8 +47,10 @@ Do **not** wrap with `webpack.ResolverPlugin()`, use as a separate plugin.
 
 ### Options
 
+* `test` is an optional regular expression for which to restrict operation. By default the plugin will operate on all dependencies encountered.
+
 * `include` is one or more modules names or project relative JSON file paths (e.g. `package.json`). A `.json` suffix indicates a file that specifies `dependencies` and/or `devDependencies`. Any other string indicates a module name.
 
-* `exclude` is one or more module names to remove from the include list.
+* `exclude` is any number of module names to remove from the include list.
 
 * `deprecate` implies that a warning should be generated whenever the plugin needs to operate. Use this to help migration from ommited tilde to appropriate use of tilde. It is not activiated by default but is strongly encouraged.

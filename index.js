@@ -37,7 +37,7 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
     var warnings = [];
 
     warn = function warn() {
-      var text = ['omit-tilde-webpack-plugin'].concat(Array.prototype.slice.call(arguments))
+      var text = ['omit-tilde-webpack-plugin,'].concat(Array.prototype.slice.call(arguments))
         .join(' ');
       if (warnings.indexOf(text) < 0) {
         compilation.warnings.push(text);
@@ -78,8 +78,10 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
   function directoryResolver(candidate, done) {
     /* jshint validthis:true */
     var requestText  = candidate.request,
-        isCSS        = /\.s?css$/.test(path.extname(requestText)),
-        split        = isCSS && requestText.split(/[\\\/]+/),
+        regex        = options.test,
+        isMatch      = !regex || ((typeof regex === 'object') && (typeof regex.test === 'function') &&
+          regex.test(requestText)),
+        split        = isMatch && requestText.split(/[\\\/]+/),
         isRelative   = split && (split[0] === '.'),
         isDependency = split && (moduleNames.indexOf(split[1]) >= 0);
     if (isRelative && isDependency) {
@@ -97,7 +99,7 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
 
     function resolved(error, result) {
       if (!error && result) {
-        warn('(s)css files should use ~ to refer to modules:\n  change "' + amended.request + '" -> "~' +
+        warn('files should use ~ to refer to modules:\n  change "' + amended.request + '" -> "~' +
           amended.request + '"');
       }
       done(error, result);

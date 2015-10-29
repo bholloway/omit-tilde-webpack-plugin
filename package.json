@@ -1,6 +1,6 @@
 {
   "name": "omit-tilde-webpack-plugin",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Webpack plugin that allows module imports to omit a tilde",
   "main": "index.js",
   "repository": {

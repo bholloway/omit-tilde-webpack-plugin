@@ -30,7 +30,15 @@ This plugin allows your legacy code to work out of the box, so long as `bootstra
 
 ## Usage
 
+Do **not** wrap with `webpack.ResolverPlugin()`, use as a separate plugin.
+
+Note that the plugin cannot automatically identify modules. You will need to give it some means of determining what you will want to ommit tilde for.
+
+### Node modules or Bower components ###
+
 In the typical use-case you will want to be able to omit the tilde for all dependencies in your `node_modules`.
+
+Include the `.json` file that specifies the dependencies.
 
 ```javascript
 var OmitTildeWebpackPlugin = require('omit-tilde-webpack-plugin');
@@ -44,7 +52,25 @@ var OmitTildeWebpackPlugin = require('omit-tilde-webpack-plugin');
 }
 ```
 
-Do **not** wrap with `webpack.ResolverPlugin()`, use as a separate plugin.
+### Peer projects and other dependencies ###
+
+Lets imagine you have already setup Webpack resolve projects in a given folder. Imagine this folder contains `projectA` and `projectB` but does not contain a `package.json`-like file. You will need to explicitly include these folders as dependencies.
+
+```javascript
+var OmitTildeWebpackPlugin = require('omit-tilde-webpack-plugin');
+{
+  plugins : [
+    new OmitTildeWebpackPlugin({
+      include  : ['projectA', 'projectB'],
+      deprecate: true
+    })
+  ]
+}
+```
+
+Since the `include` arguments do not end in `.json` they simply specify modules that Webpack already knows how to resolve.
+
+You can combine any number of `.json` files with explicit dependencies.
 
 ### Options
 

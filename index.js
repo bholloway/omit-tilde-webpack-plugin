@@ -2,6 +2,8 @@
 
 var path = require('path');
 
+var PACKAGE_NAME = require('./package.json').name;
+
 function OmitTildeWebpackPlugin(options) {
   this.options = (typeof options === 'object') ? options : {};
 }
@@ -37,7 +39,8 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
     var warnings = [];
 
     warn = function warn() {
-      var text = ['omit-tilde-webpack-plugin,'].concat(Array.prototype.slice.call(arguments))
+      var text = [PACKAGE_NAME]
+        .concat(Array.prototype.slice.call(arguments))
         .join(' ');
       if (warnings.indexOf(text) < 0) {
         compilation.warnings.push(text);

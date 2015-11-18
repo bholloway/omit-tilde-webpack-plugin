@@ -61,7 +61,7 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
       return reduced
         .concat(contents && contents.dependencies && Object.keys(contents.dependencies))
         .concat(contents && contents.devDependencies && Object.keys(contents.devDependencies))
-        .concat(contents && contents.bundledDependencies && contents.bundledDependencies || [])
+        .concat(contents && contents.bundledDependencies)
         .filter(Boolean)
         .reduce(flatten, []);
     }

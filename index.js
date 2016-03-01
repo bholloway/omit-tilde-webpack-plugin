@@ -1,6 +1,7 @@
 'use strict';
 
-var path = require('path');
+var path = require('path'),
+    fs   = require('fs');
 
 var PACKAGE_NAME = require('./package.json').name;
 
@@ -10,20 +11,22 @@ function OmitTildeWebpackPlugin(options) {
 module.exports = OmitTildeWebpackPlugin;
 
 OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
-  var options = this.options,
-      warn    = noop;
+  var options  = this.options,
+      warnings = [];
 
   // work out the modules that we need to respond to
   var excludeNames = [].concat(options.exclude)
-        .map(String),
-      includeNames = [].concat(options.include)
-        .map(String)
-        .reduce(eachInclude, []),
-      moduleNames  = includeNames
-        .filter(testNotExcluded.bind(null, excludeNames));
+    .map(String);
+
+  var includeNames = [].concat(options.include)
+    .map(String)
+    .reduce(eachInclude, []);
+
+  var moduleNames = includeNames
+    .filter(testNotExcluded.bind(null, excludeNames));
 
   // hook the compiler so we can push warnings in the warn() method
-  compiler.plugin('compilation', onCompilation);
+  compiler.plugin('after-compile', afterCompile);
 
   if (moduleNames.length) {
     compiler.resolvers.normal.plugin('directory', directoryResolver);
@@ -31,22 +34,18 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
     warn('No dependencies found, plugin will not run');
   }
 
-  function noop() {
-    /* placeholder against compilation not initialised */
+  function warn() {
+    var text = [PACKAGE_NAME]
+      .concat(Array.prototype.slice.call(arguments))
+      .join(' ');
+    if (warnings.indexOf(text) < 0) {
+      warnings.push(text);
+    }
   }
 
-  function onCompilation(compilation) {
-    var warnings = [];
-
-    warn = function warn() {
-      var text = [PACKAGE_NAME]
-        .concat(Array.prototype.slice.call(arguments))
-        .join(' ');
-      if (warnings.indexOf(text) < 0) {
-        compilation.warnings.push(text);
-        warnings.push(text);
-      }
-    };
+  function afterCompile(compilation, done) {
+    compilation.warnings.push.apply(compilation.warnings, warnings);
+    done();
   }
 
   function eachInclude(reduced, include) {
@@ -80,14 +79,27 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
 
   function directoryResolver(candidate, done) {
     /* jshint validthis:true */
-    var requestText  = candidate.request,
-        regex        = options.test,
-        isMatch      = !regex || ((typeof regex === 'object') && (typeof regex.test === 'function') &&
-          regex.test(requestText)),
-        split        = isMatch && requestText.split(/[\\\/]+/),
-        isRelative   = split && (split[0] === '.'),
-        isDependency = split && (moduleNames.indexOf(split[1]) >= 0);
-    if (isRelative && isDependency) {
+
+    // check for match
+    var requestText = candidate.request,
+        regex       = options.test,
+        isMatch     = !regex ||
+          ((typeof regex === 'object') && (typeof regex.test === 'function') && regex.test(requestText));
+
+    // determine whether it is a module
+    var split            = isMatch && requestText.split(/[\\\/]+/),
+        isRelative       = !!split && (split[0] === '.'),
+        requestedPackage = isRelative && split[1],
+        isDependency     = !!requestedPackage && (moduleNames.indexOf(split[1]) >= 0);
+
+    // estimate the package that the request originates from
+    var candidatePackage = isDependency && locatePackage(candidate.path);
+
+    // ensure the candidate path is not inside the requested package
+    var isAmend = !!candidatePackage && (requestedPackage !== candidatePackage);
+
+    // amend and re-issue the request
+    if (isAmend) {
       var amended = {
         path   : candidate.path,
         request: requestText.slice(2),
@@ -96,16 +108,38 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
       };
       this.doResolve(['module'], amended, options.deprecate ? resolved : done);
     }
+    // ignore
     else {
       done();
     }
 
     function resolved(error, result) {
       if (!error && result) {
-        warn('files should use ~ to refer to modules:\n  change "' + amended.request + '" -> "~' +
-          amended.request + '"');
+        warn([
+          'files should use ~ to refer to modules:',
+          '  in directory: "' + path.relative(process.cwd(), candidate.path) + '"',
+          '  change "' + amended.request + '" -> "~' + amended.request + '"'
+        ].join('\n'));
       }
       done(error, result);
     }
   }
 };
+
+function locatePackage(directory) {
+  var isValidDir = fs.existsSync(directory) && fs.statSync(directory).isDirectory();
+  if (isValidDir) {
+    var isPackage = ['bower.json', '.bower.json', 'package.json'].some(hasFile);
+    if (isPackage) {
+      return directory.split(/[\\\/]+/).pop();
+    }
+    else {
+      return locatePackage(path.resolve(directory, '..'));
+    }
+  }
+
+  function hasFile(filename) {
+    var fullPath = path.resolve(path.join(directory, filename));
+    return fs.existsSync(fullPath) && fs.statSync(fullPath).isFile();
+  }
+}

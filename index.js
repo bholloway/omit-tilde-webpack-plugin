@@ -83,23 +83,23 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
     // check for match
     var requestText = candidate.request,
         regex       = options.test,
-        isMatch     = !regex ||
+        isTested    = !regex ||
           ((typeof regex === 'object') && (typeof regex.test === 'function') && regex.test(requestText));
 
     // determine whether it is a module
-    var split            = isMatch && requestText.split(/[\\\/]+/),
-        isRelative       = !!split && (split[0] === '.'),
-        requestedPackage = isRelative && split[1],
-        isDependency     = !!requestedPackage && (moduleNames.indexOf(split[1]) >= 0);
+    var split      = isTested && requestText.split(/[\\\/]+/),
+        isRelative = !!split && (split[0] === '.');
 
-    // estimate the package that the request originates from
-    var candidatePackage = isDependency && locatePackage(candidate.path);
+    // determine whether the request is prefixed with what looks to be a module
+    var isMatched = isRelative && (moduleNames.indexOf(split[1]) >= 0);
 
-    // ensure the candidate path is not inside the requested package
-    var isAmend = !!candidatePackage && (requestedPackage !== candidatePackage);
+    //  ensure that the request is not an immediate file (i.e. filename looks like package name)
+    var naivePath = path.normalize(path.join(candidate.path, candidate.request)),
+        isOperate = isMatched && !fs.existsSync(naivePath);
 
-    // amend and re-issue the request
-    if (isAmend) {
+    // operate
+    //  amend and re-issue the request as a module
+    if (isOperate) {
       var amended = {
         path   : candidate.path,
         request: requestText.slice(2),
@@ -117,7 +117,7 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
       if (!error && result) {
         warn([
           'files should use ~ to refer to modules:',
-          '  in directory: "' + path.relative(process.cwd(), candidate.path) + '"',
+          '  in directory: "' + candidate.path + '"',
           '  change "' + amended.request + '" -> "~' + amended.request + '"'
         ].join('\n'));
       }
@@ -125,21 +125,3 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
     }
   }
 };
-
-function locatePackage(directory) {
-  var isValidDir = fs.existsSync(directory) && fs.statSync(directory).isDirectory();
-  if (isValidDir) {
-    var isPackage = ['bower.json', '.bower.json', 'package.json'].some(hasFile);
-    if (isPackage) {
-      return directory.split(/[\\\/]+/).pop();
-    }
-    else {
-      return locatePackage(path.resolve(directory, '..'));
-    }
-  }
-
-  function hasFile(filename) {
-    var fullPath = path.resolve(path.join(directory, filename));
-    return fs.existsSync(fullPath) && fs.statSync(fullPath).isFile();
-  }
-}

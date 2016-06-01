@@ -54,7 +54,8 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
       var amended;
 
       // relaunch the request as a module, removing any relative path prefix
-      var isOperate = !result && /^(\.[\\\/])?[^\.]/.test(requestText);
+      var isRelative = /^\.[\\\/][^\.]/.test(requestText),
+          isOperate  = !result && isRelative;
       if (isOperate) {
         amended = {
           path   : candidate.path,

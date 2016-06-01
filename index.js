@@ -38,8 +38,9 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
     var doResolve = this.doResolve.bind(this);
 
     // ignore recursions
-    var requestText = candidate.request;
-    if (requestText in recursionMap) {
+    var requestText = candidate.request,
+        isRecursing = recursionMap[requestText];
+    if (isRecursing) {
       done();
     }
     // repeat the request, but this time we control the callbacks

@@ -35,12 +35,11 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
 
   function directoryResolver(candidate, done) {
     /* jshint validthis:true */
-    var doResolve = this.doResolve;
+    var doResolve = this.doResolve.bind(this);
 
     // ignore recursions
-    var requestText = candidate.request,
-        isRecursing = (requestText in recursionMap);
-    if (isRecursing) {
+    var requestText = candidate.request;
+    if (requestText in recursionMap) {
       done();
     }
     // repeat the request, but this time we control the callbacks
@@ -53,19 +52,20 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
       recursionEnd(requestText);
       var amended;
 
-      // the original request would have been successful
-      if (!error && result) {
-        done(error, result);
-      }
       // relaunch the request as a module, removing any relative path prefix
-      else {
+      var isOperate = !result && /^(\.[\\\/])?[^\.]/.test(requestText);
+      if (isOperate) {
         amended = {
           path   : candidate.path,
-          request: requestText.replace(/^\.+[\\\/]/, ''),
+          request: requestText.slice(2),
           query  : candidate.query,
           module : true
         };
         doResolve(['module'], amended, options.deprecate ? resolved : done);
+      }
+      // use the original request
+      else {
+        done(error, result);
       }
 
       function resolved(error, result) {

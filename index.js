@@ -1,5 +1,7 @@
 'use strict';
 
+var ModuleFilenameHelpers = require('webpack/lib/ModuleFilenameHelpers');
+
 var PACKAGE_NAME = require('./package.json').name;
 
 function OmitTildeWebpackPlugin(options) {
@@ -37,10 +39,11 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
     /* jshint validthis:true */
     var doResolve = this.doResolve.bind(this);
 
-    // ignore recursions
+    // ignore recursions or exclusions
     var requestText = candidate.request,
-        isRecursing = recursionMap[requestText];
-    if (isRecursing) {
+        isRecursing = recursionMap[requestText],
+        isExcluded  = !ModuleFilenameHelpers.matchObject(options, requestText);
+    if (isRecursing || isExcluded) {
       done();
     }
     // repeat the request, but this time we control the callbacks

@@ -20,7 +20,9 @@
     "url": "https://github.com/bholloway/omit-tilde-webpack-plugin/issues"
   },
   "homepage": "https://github.com/bholloway/omit-tilde-webpack-plugin",
-  "dependencies": {},
+  "dependencies": {
+    "webpack": "^1.13.1"
+  },
   "peerDependencies": {
     "webpack": "^1.12.0"
   }

@@ -42,10 +42,11 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
     var doResolve = this.doResolve.bind(this);
 
     // void recursing, request must lead with single ./ to be relevant
-    var normalised   = path.normalize(candidate.request),
-        isRelevant   = /^\.[\\\/]/.test(candidate.request) && /^[^\.~\\\/]/.test(normalised),
-        recursionKey = [candidate.path, normalised].join('|'),
-        isRecursing  = recursionMap[recursionKey];
+    var requestFile    = candidate.request.split('!').pop(),
+        normalisedFile = path.normalize(requestFile),
+        isRelevant     = /^\.[\\\/]/.test(requestFile) && /^[^\.~\\\/]/.test(normalisedFile),
+        recursionKey   = [candidate.path, normalisedFile].join('|'),
+        isRecursing    = recursionMap[recursionKey];
 
     // abort early
     if (!isRelevant || isRecursing) {
@@ -87,7 +88,7 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
       if (!result) {
         amended = {
           path   : candidate.path,
-          request: normalised,
+          request: normalisedFile,
           query  : candidate.query,
           module : true
         };

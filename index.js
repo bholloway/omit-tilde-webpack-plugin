@@ -1,5 +1,7 @@
 'use strict';
 
+var path = require('path');
+
 var ModuleFilenameHelpers = require('webpack/lib/ModuleFilenameHelpers');
 
 var PACKAGE_NAME = require('./package.json').name;
@@ -39,30 +41,53 @@ OmitTildeWebpackPlugin.prototype.apply = function apply(compiler) {
     /* jshint validthis:true */
     var doResolve = this.doResolve.bind(this);
 
-    // ignore recursions or exclusions
-    var requestText = candidate.request,
-        isRecursing = recursionMap[requestText],
-        isExcluded  = !ModuleFilenameHelpers.matchObject(options, requestText);
-    if (isRecursing || isExcluded) {
+    // void recursing, request must lead with single ./ to be relevant
+    var normalised   = path.normalize(candidate.request),
+        isRelevant   = /^\.[\\\/]/.test(candidate.request) && /^[^\.~\\\/]/.test(normalised),
+        recursionKey = [candidate.path, normalised].join('|'),
+        isRecursing  = recursionMap[recursionKey];
+
+    // abort early
+    if (!isRelevant || isRecursing) {
       done();
     }
-    // repeat the request, but this time we control the callbacks
+    // proceed unless filtered
     else {
-      recursionStart(requestText);
-      doResolve(['directory'], candidate, onDirectoryResolve);
+      var isIncluded = [
+        ModuleFilenameHelpers.matchObject(options.path || {}, candidate.path),
+        ModuleFilenameHelpers.matchObject(options.request || {}, candidate.request)
+      ];
+
+      // verbose messaging
+      if (options.verbose) {
+        var text = [
+          PACKAGE_NAME + ':',
+          (isIncluded[0] ? '\u2713' : '\u2715') + ' path    "' + candidate.path + '"',
+          (isIncluded[1] ? '\u2713' : '\u2715') + ' request "' + candidate.request + '"'
+        ].join('\n  ');
+        console.log(text);
+      }
+
+      // repeat the request, but this time we control the callbacks
+      if (isIncluded.every(Boolean)) {
+        recursionStart(recursionKey);
+        doResolve(['directory'], candidate, onDirectoryResolve);
+      }
+      // not relevant
+      else {
+        done();
+      }
     }
 
     function onDirectoryResolve(error, result) {
-      recursionEnd(requestText);
+      recursionEnd(recursionKey);
       var amended;
 
       // relaunch the request as a module, removing any relative path prefix
-      var isRelative = /^\.[\\\/][^\.]/.test(requestText),
-          isOperate  = !result && isRelative;
-      if (isOperate) {
+      if (!result) {
         amended = {
           path   : candidate.path,
-          request: requestText.slice(2),
+          request: normalised,
           query  : candidate.query,
           module : true
         };

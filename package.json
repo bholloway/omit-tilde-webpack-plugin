@@ -21,9 +21,8 @@
   },
   "homepage": "https://github.com/bholloway/omit-tilde-webpack-plugin",
   "dependencies": {
-    "webpack": "^1.13.1"
   },
   "peerDependencies": {
-    "webpack": "^1.12.0"
+    "webpack": "^1.13.0"
   }
 }
